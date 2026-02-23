@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS exercises (
   weekly_word TEXT,
   prompt TEXT,
   payload_json TEXT NOT NULL,
+  ui_model_json TEXT NOT NULL,
   audio_file TEXT,
   has_audio INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (pack_id) REFERENCES packs(pack_id) ON DELETE CASCADE

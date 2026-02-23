@@ -5,9 +5,10 @@ Este repositório define a base técnica do MVP mobile para consumo de exercíci
 ## Entregáveis desta fase
 
 - Contrato de pack/documentação funcional e técnica.
-- JSON Schemas para `manifest`, `exercise` e `attempt`.
+- JSON Schemas para `manifest`, `exercise`, `attempt` e `ui_adapter`.
 - Schema SQL local para persistência offline (SQLite).
 - Validador de pack em streaming (`tools/validate_pack.py`).
+- Adapter de exercício bruto para UI model (`tools/ui_adapter.py`).
 
 ## Fluxo de alto nível
 
@@ -23,6 +24,7 @@ Este repositório define a base técnica do MVP mobile para consumo de exercíci
 - `schemas/*.schema.json`: contratos formais para validação.
 - `sql/schema.sql`: estrutura de armazenamento local.
 - `tools/validate_pack.py`: validação mínima de importação.
+- `tools/ui_adapter.py`: derivação de UI model por modalidade.
 
 ## Uso rápido do validador
 

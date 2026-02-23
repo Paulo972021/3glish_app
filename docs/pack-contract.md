@@ -109,3 +109,34 @@ Avisos (importa com aviso):
 - `pronunciation.audio_file` apontando para arquivo ausente no zip
 - pack sem áudio
 - inconsistências em `counts` declarados vs. contados
+
+## 6. UI Adapter (render-ready)
+
+Cada exercício pode ser convertido para um UI Model com este contrato:
+
+- `view_type`: componente da tela
+- `prompt_blocks`: blocos para renderização
+- `input_spec`: tipo de entrada do usuário
+- `grading_spec`: regra comum de avaliação (ou não avaliável)
+- `audio_spec`: presente em `pronunciation`
+- `feedback_spec`: exibição de explicações
+
+Mapeamento padrão por modalidade:
+
+- `translation` -> `free_text`
+- `reverse_translation` -> `free_text`
+- `fill_blank` -> `fill_blank_single`
+- `multiple_choice` -> `multiple_choice`
+- `true_false` -> `true_false`
+- `pronunciation` -> `pronunciation_audio`
+
+Implementação de referência: `tools/ui_adapter.py`.
+
+## 7. Regras extras de validação
+
+Além da validação mínima:
+
+- `multiple_choice.correct_index` deve estar no intervalo válido de `options`.
+- Em `true_false`, `label` normalizado deve mapear para verdadeiro/falso.
+  - verdadeiros aceitos: `verdadeiro`, `true`, `v`
+  - falsos aceitos: `falso`, `false`, `f`

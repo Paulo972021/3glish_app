@@ -9,6 +9,8 @@ Regras:
 - confere modalidade válida
 - confere answers[] mínimo
 - para pronunciation com audio_file, garante path relativo e avisa se arquivo não existir
+- para multiple_choice, valida correct_index < len(options)
+- para true_false, valida label dentro do mapeamento esperado
 """
 
 from __future__ import annotations
@@ -30,7 +32,9 @@ VALID_MODALITIES = {
     "pronunciation",
 }
 SUPPORTED_SCHEMA_VERSIONS = {"1.0.0"}
-ABS_PATH_RE = re.compile(r"^(?:[A-Za-z]:\\|/)" )
+ABS_PATH_RE = re.compile(r"^(?:[A-Za-z]:\\|/)")
+TRUE_VALUES = {"verdadeiro", "true", "v"}
+FALSE_VALUES = {"falso", "false", "f"}
 
 
 @dataclass
@@ -78,6 +82,41 @@ def _is_relative_pack_path(path: str) -> bool:
     return ".." not in posix.parts
 
 
+def _normalize_text(value: str) -> str:
+    return re.sub(r"\s+", " ", value.strip().lower())
+
+
+def _validate_true_false(ex: dict, line_no: int, state: ValidationState) -> None:
+    label = ex.get("label")
+    if not isinstance(label, str) or not label.strip():
+        state.error(f"linha {line_no}: true_false.label ausente/inválido")
+        return
+
+    normalized = _normalize_text(label)
+    if normalized not in TRUE_VALUES and normalized not in FALSE_VALUES:
+        state.error(
+            f"linha {line_no}: true_false.label fora do mapeamento esperado: {label!r}"
+        )
+
+
+def _validate_multiple_choice(ex: dict, line_no: int, state: ValidationState) -> None:
+    options = ex.get("options")
+    correct_index = ex.get("correct_index")
+
+    if not isinstance(options, list) or len(options) < 2:
+        state.error(f"linha {line_no}: multiple_choice.options inválido (mínimo 2)")
+        return
+
+    if not isinstance(correct_index, int):
+        state.error(f"linha {line_no}: multiple_choice.correct_index ausente/inválido")
+        return
+
+    if correct_index < 0 or correct_index >= len(options):
+        state.error(
+            f"linha {line_no}: multiple_choice.correct_index fora do range ({correct_index} >= {len(options)})"
+        )
+
+
 def _validate_exercise(ex: dict, line_no: int, names: set[str], state: ValidationState) -> None:
     ex_id = ex.get("exercise_id")
     modality = ex.get("modality")
@@ -98,6 +137,11 @@ def _validate_exercise(ex: dict, line_no: int, names: set[str], state: Validatio
 
     if not isinstance(answers, list) or len(answers) == 0:
         state.error(f"linha {line_no}: answers[] ausente ou vazio")
+
+    if modality == "multiple_choice":
+        _validate_multiple_choice(ex, line_no, state)
+    elif modality == "true_false":
+        _validate_true_false(ex, line_no, state)
 
     state.total_exercises += 1
     state.by_modality[modality] = state.by_modality.get(modality, 0) + 1
@@ -121,6 +165,7 @@ def validate_pack(zip_path: str) -> ValidationState:
             return state
 
         exercises_name = manifest.get("files", {}).get("exercises_jsonl")
+        zip_names = set(zf.namelist())
         try:
             with zf.open(exercises_name) as fp:
                 seen_ids: set[str] = set()
@@ -142,7 +187,7 @@ def validate_pack(zip_path: str) -> ValidationState:
                             state.error(
                                 f"linha {line_no}: audio_file deve ser path relativo ao pack: {audio_file!r}"
                             )
-                        elif audio_file not in zf.namelist():
+                        elif audio_file not in zip_names:
                             state.warn(
                                 f"linha {line_no}: audio_file não encontrado no zip: {audio_file}"
                             )
