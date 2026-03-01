@@ -9,6 +9,7 @@ Esqueleto Expo + TypeScript do app mobile MVP para consumo de packs de exercíci
 - Dispatcher por `view_type` e componentes base das 6 modalidades.
 - Motor de grading centralizado e normalização básica.
 - Player de áudio (`expo-av`) com presets de velocidade.
+- Serviço de engine (`submitAttempt/getNext`) para fluxo Resolver -> Próximo.
 
 ## Rodar
 

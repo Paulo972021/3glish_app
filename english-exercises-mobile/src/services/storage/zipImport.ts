@@ -13,16 +13,6 @@ type Manifest = {
   files: { exercises_jsonl: string; audio_root?: string };
 };
 
-function bytesToBase64(bytes: Uint8Array): string {
-  let binary = "";
-  const chunkSize = 8192;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode(...chunk);
-  }
-  return globalThis.btoa(binary);
-}
-
 async function ensureDir(path: string) {
   const info = await FileSystem.getInfoAsync(path);
   if (!info.exists) {
@@ -59,10 +49,7 @@ export async function pickAndImportPack(): Promise<{ packId: string }> {
 
   const fileUri = res.assets[0].uri;
   const base64 = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.Base64 });
-
-  const binaryString = globalThis.atob(base64);
-  const zipData = Uint8Array.from(binaryString, (c) => c.charCodeAt(0));
-  const zip = await JSZip.loadAsync(zipData);
+  const zip = await JSZip.loadAsync(base64, { base64: true });
 
   const manifestFile = zip.file("manifest.json");
   if (!manifestFile) throw new Error("manifest.json não encontrado no zip.");
@@ -81,8 +68,8 @@ export async function pickAndImportPack(): Promise<{ packId: string }> {
     const outPath = root + entry.name;
     await ensureDir(outPath.substring(0, outPath.lastIndexOf("/") + 1));
 
-    const content = await entry.async("uint8array");
-    await FileSystem.writeAsStringAsync(outPath, bytesToBase64(content), {
+    const contentB64 = await entry.async("base64");
+    await FileSystem.writeAsStringAsync(outPath, contentB64, {
       encoding: FileSystem.EncodingType.Base64,
     });
   }
