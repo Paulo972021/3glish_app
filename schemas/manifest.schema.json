@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://3glish.app/schemas/manifest.schema.json",
+  "title": "3glish Pack Manifest",
+  "type": "object",
+  "required": ["schema_version", "pack_id", "date", "files"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "pack_id": { "type": "string", "minLength": 1 },
+    "date": { "type": "string", "format": "date" },
+    "run_id": { "type": "string" },
+    "weekly_word": { "type": "string" },
+    "language_pair": { "type": "string" },
+    "counts": {
+      "type": "object",
+      "properties": {
+        "base_sentences": { "type": "integer", "minimum": 0 },
+        "exercises_total": { "type": "integer", "minimum": 0 },
+        "by_modality": {
+          "type": "object",
+          "properties": {
+            "translation": { "type": "integer", "minimum": 0 },
+            "reverse_translation": { "type": "integer", "minimum": 0 },
+            "fill_blank": { "type": "integer", "minimum": 0 },
+            "multiple_choice": { "type": "integer", "minimum": 0 },
+            "true_false": { "type": "integer", "minimum": 0 },
+            "pronunciation": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "files": {
+      "type": "object",
+      "required": ["exercises_jsonl"],
+      "properties": {
+        "exercises_jsonl": { "type": "string", "minLength": 1 },
+        "base_sentences_jsonl": { "type": "string" },
+        "audio_root": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "pronunciation": {
+      "type": "object",
+      "properties": {
+        "audio_ext": { "type": "string" },
+        "voices_used": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "additionalProperties": false
+    },
+    "integrity": {
+      "type": "object",
+      "properties": {
+        "sha256": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[A-Fa-f0-9]{64}$"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}
