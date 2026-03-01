@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { SafeAreaView } from "react-native";
 import { UiModel } from "../core/contracts/types";
-import { getDarkModeEnabled } from "../state/settingsStore";
 import { HomeScreen } from "../screens/HomeScreen";
 import { ImportPackScreen } from "../screens/ImportPackScreen";
 import { SettingsScreen } from "../screens/SettingsScreen";
 import { SolveScreen } from "../screens/SolveScreen";
 import { StatsScreen } from "../screens/StatsScreen";
+import { getDarkModeEnabled } from "../state/settingsStore";
 
 type Route = "home" | "import" | "solve" | "stats" | "settings";
 
@@ -28,6 +28,8 @@ export function AppNavigator() {
   const [darkMode, setDarkMode] = useState(getDarkModeEnabled());
   const demoUi = useMemo(() => DEMO_UI, []);
 
+  const backToMenu = () => setRoute("home");
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: darkMode ? "#111827" : "#ffffff" }}>
       {route === "home" && (
@@ -37,12 +39,13 @@ export function AppNavigator() {
           onSolve={() => setRoute("solve")}
           onStats={() => setRoute("stats")}
           onSettings={() => setRoute("settings")}
+          onBackToMenu={backToMenu}
         />
       )}
-      {route === "import" && <ImportPackScreen onBack={() => setRoute("home")} />}
-      {route === "solve" && <SolveScreen uiModel={demoUi} />}
-      {route === "stats" && <StatsScreen packId="demo-pack" />}
-      {route === "settings" && <SettingsScreen darkMode={darkMode} onToggleDarkMode={setDarkMode} />}
+      {route === "import" && <ImportPackScreen onBack={backToMenu} darkMode={darkMode} />}
+      {route === "solve" && <SolveScreen uiModel={demoUi} onBack={backToMenu} darkMode={darkMode} />}
+      {route === "stats" && <StatsScreen packId="demo-pack" onBack={backToMenu} darkMode={darkMode} />}
+      {route === "settings" && <SettingsScreen darkMode={darkMode} onToggleDarkMode={setDarkMode} onBack={backToMenu} />}
     </SafeAreaView>
   );
 }

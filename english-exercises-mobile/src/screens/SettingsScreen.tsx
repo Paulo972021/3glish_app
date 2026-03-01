@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Pressable, Text, View } from "react-native";
+import { MenuButton } from "../components/blocks/MenuButton";
 import {
   getAudioSpeedDefault,
   setAudioSpeedDefault,
@@ -9,9 +10,11 @@ import {
 export function SettingsScreen({
   darkMode,
   onToggleDarkMode,
+  onBack,
 }: {
   darkMode: boolean;
   onToggleDarkMode: (enabled: boolean) => void;
+  onBack: () => void;
 }) {
   const [speed, setSpeed] = useState(getAudioSpeedDefault());
   const bg = darkMode ? "#111827" : "#ffffff";
@@ -47,6 +50,8 @@ export function SettingsScreen({
       >
         <Text style={{ color: text }}>{darkMode ? "Desativar modo escuro" : "Ativar modo escuro"}</Text>
       </Pressable>
+
+      <MenuButton onPress={onBack} darkMode={darkMode} />
     </View>
   );
 }

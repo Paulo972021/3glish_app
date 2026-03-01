@@ -1,17 +1,20 @@
 import React from "react";
 import { Pressable, StatusBar, Text, View } from "react-native";
+import { MenuButton } from "../components/blocks/MenuButton";
 
 export function HomeScreen({
   onImport,
   onSolve,
   onStats,
   onSettings,
+  onBackToMenu,
   darkMode,
 }: {
   onImport: () => void;
   onSolve: () => void;
   onStats: () => void;
   onSettings: () => void;
+  onBackToMenu: () => void;
   darkMode: boolean;
 }) {
   const bg = darkMode ? "#111827" : "#ffffff";
@@ -35,6 +38,7 @@ export function HomeScreen({
       <Pressable onPress={onSettings} style={{ borderWidth: 1, borderColor: border, borderRadius: 8, padding: 12, backgroundColor: cardBg }}>
         <Text style={{ color: text }}>Configurações</Text>
       </Pressable>
+      <MenuButton onPress={onBackToMenu} darkMode={darkMode} />
     </View>
   );
 }
