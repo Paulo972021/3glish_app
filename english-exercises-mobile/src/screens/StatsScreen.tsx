@@ -18,6 +18,11 @@ export function StatsScreen({
   const text = darkMode ? theme.colors.textPrimary : theme.colors.lightText;
 
   useEffect(() => {
+    if (!packId) {
+      setStats({ done_total: 0, correct_total: 0, wrong_total: 0 });
+      return;
+    }
+
     getGlobalStats(packId).then(setStats).catch(() => undefined);
   }, [packId]);
 
@@ -25,9 +30,16 @@ export function StatsScreen({
     <ScreenContainer darkMode={darkMode}>
       <View style={{ gap: theme.spacing.sm, flex: 1 }}>
         <Text style={{ color: text, fontSize: theme.typography.h2, fontWeight: "800" }}>ESTATÍSTICAS</Text>
-        <Text style={{ color: theme.colors.textSecondary }}>Feitos: {stats.done_total}</Text>
-        <Text style={{ color: theme.colors.success }}>Certos: {stats.correct_total}</Text>
-        <Text style={{ color: theme.colors.error }}>Errados: {stats.wrong_total}</Text>
+        {!packId ? (
+          <Text style={{ color: theme.colors.error }}>Importe e selecione um pack para ver estatísticas.</Text>
+        ) : (
+          <>
+            <Text style={{ color: theme.colors.textSecondary }}>Pack atual: {packId}</Text>
+            <Text style={{ color: theme.colors.textSecondary }}>Feitos: {stats.done_total}</Text>
+            <Text style={{ color: theme.colors.success }}>Certos: {stats.correct_total}</Text>
+            <Text style={{ color: theme.colors.error }}>Errados: {stats.wrong_total}</Text>
+          </>
+        )}
         <MenuButton onPress={onBack} darkMode={darkMode} />
       </View>
     </ScreenContainer>
