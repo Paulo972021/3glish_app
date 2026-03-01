@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "english-exercises-mobile",
+    "slug": "english-exercises-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0B1221"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0B1221"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://3glish.app/schemas/ui_adapter.schema.json",
+  "title": "3glish UI Adapter Model",
+  "type": "object",
+  "required": ["view_type", "title", "prompt_blocks", "input_spec", "grading_spec", "feedback_spec"],
+  "properties": {
+    "view_type": {
+      "type": "string",
+      "enum": [
+        "free_text",
+        "fill_blank_single",
+        "multiple_choice",
+        "true_false",
+        "pronunciation_audio"
+      ]
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "prompt_blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "value"],
+        "properties": {
+          "type": { "type": "string", "enum": ["text", "hint", "meta"] },
+          "value": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "input_spec": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string" },
+        "placeholder": { "type": "string" },
+        "max_chars": { "type": "integer", "minimum": 1 },
+        "hint": { "type": "string" },
+        "options": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 2
+        },
+        "labels": {
+          "type": "object",
+          "properties": {
+            "true": { "type": "string" },
+            "false": { "type": "string" }
+          },
+          "required": ["true", "false"],
+          "additionalProperties": false
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["played", "replayed", "self_rating_optional"]
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "grading_spec": {
+      "type": "object",
+      "required": ["gradable"],
+      "properties": {
+        "gradable": { "type": "boolean" },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "match_any_answer",
+            "index_equals",
+            "boolean_equals_label"
+          ]
+        },
+        "normalization": {
+          "type": "object",
+          "properties": {
+            "trim": { "type": "boolean" },
+            "lowercase": { "type": "boolean" },
+            "collapse_spaces": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "accepted_answers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "correct_index": { "type": "integer", "minimum": 0 },
+        "label_source": { "type": "string" },
+        "label_mapping": {
+          "type": "object",
+          "properties": {
+            "true_values": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            },
+            "false_values": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "result_on_complete": { "type": "string", "const": "done_no_grade" }
+      },
+      "additionalProperties": true
+    },
+    "audio_spec": {
+      "type": "object",
+      "required": ["path", "controls"],
+      "properties": {
+        "path": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "null" }
+          ]
+        },
+        "controls": {
+          "type": "object",
+          "required": ["show_speed", "speed_presets", "default_speed"],
+          "properties": {
+            "show_speed": { "type": "boolean" },
+            "speed_presets": {
+              "type": "array",
+              "items": { "type": "number", "minimum": 0.75, "maximum": 1.5 },
+              "minItems": 1
+            },
+            "default_speed": { "type": "number", "minimum": 0.75, "maximum": 1.5 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "feedback_spec": {
+      "type": "object",
+      "required": ["show_after_submit"],
+      "properties": {
+        "show_after_submit": { "type": "boolean" },
+        "explanations_pt": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "view_type": { "const": "pronunciation_audio" } } },
+      "then": {
+        "required": ["audio_spec"],
+        "properties": {
+          "grading_spec": {
+            "properties": {
+              "gradable": { "const": false },
+              "result_on_complete": { "const": "done_no_grade" }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}
