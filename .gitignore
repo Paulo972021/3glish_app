@@ -1,0 +1,9 @@
+# Expo / React Native build artifacts
+english-exercises-mobile/dist/
+english-exercises-mobile/.expo/
+english-exercises-mobile/.expo-shared/
+english-exercises-mobile/node_modules/
+
+# Generic
+.DS_Store
+*.log
