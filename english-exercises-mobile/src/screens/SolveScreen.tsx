@@ -7,10 +7,22 @@ import { FreeTextView } from "../components/views/FreeTextView";
 import { MultipleChoiceView } from "../components/views/MultipleChoiceView";
 import { PronunciationAudioView } from "../components/views/PronunciationAudioView";
 import { TrueFalseView } from "../components/views/TrueFalseView";
-import { UiModel } from "../core/contracts/types";
+import { Modality, UiModel } from "../core/contracts/types";
 import { gradeMatchAny } from "../core/grading/graders";
 import { getNext, submitAttempt } from "../services/engine/solveEngine";
+import { getDeckModalityProgress, getDeckStats } from "../services/db/statsRepo";
 import { theme } from "../theme/theme";
+
+const MODALITIES: Array<{ label: string; value: Modality }> = [
+  { label: "Tradução", value: "translation" },
+  { label: "Pronúncia", value: "pronunciation" },
+  { label: "Completar frases", value: "fill_blank" },
+  { label: "Tradução reversa", value: "reverse_translation" },
+  { label: "Múltipla escolha", value: "multiple_choice" },
+  { label: "Verdadeiro/Falso", value: "true_false" },
+];
+
+type SolveStage = "select_pack" | "deck_overview" | "exercise";
 
 function evaluate(ui: UiModel, userAnswer: string): "correct" | "wrong" | "done_no_grade" {
   if (!ui.grading_spec?.gradable) return "done_no_grade";
@@ -53,27 +65,51 @@ export function SolveScreen({
   availablePackIds: string[];
   onSelectPack: (packId: string) => void;
 }) {
+  const [stage, setStage] = useState<SolveStage>("select_pack");
+  const [modality, setModality] = useState<Modality | null>(null);
   const [uiModel, setUiModel] = useState<UiModel | null>(null);
+  const [retryQueue, setRetryQueue] = useState<UiModel[]>([]);
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState<string>("");
+  const [deckStats, setDeckStats] = useState({ done_total: 0, correct_total: 0, wrong_total: 0 });
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
 
   const textColor = darkMode ? theme.colors.textPrimary : theme.colors.lightText;
 
   useEffect(() => {
-    (async () => {
-      if (!selectedPackId) {
-        setUiModel(null);
-        return;
-      }
-      const next = await getNext(selectedPackId);
-      setUiModel(next);
+    if (selectedPackId) {
+      setStage("deck_overview");
+      setModality(null);
+      setUiModel(null);
+      setRetryQueue([]);
       setAnswer("");
-      setFeedback(next ? "" : "Não há mais exercícios pendentes neste pack.");
-    })();
+      setFeedback("");
+      (async () => {
+        const stats = await getDeckStats(selectedPackId);
+        setDeckStats(stats);
+      })().catch(() => undefined);
+    }
   }, [selectedPackId]);
 
-  const renderView = useMemo(() => {
-    if (!uiModel) return <View />;
+  async function loadNextForModality(packId: string, selectedModality: Modality) {
+    const prog = await getDeckModalityProgress(packId, selectedModality);
+    setProgress(prog);
+
+    const fromRetry = retryQueue.length > 0 && Math.random() < 0.35;
+    if (fromRetry) {
+      const idx = Math.floor(Math.random() * retryQueue.length);
+      const ex = retryQueue[idx];
+      setRetryQueue((prev) => prev.filter((_, i) => i !== idx));
+      setUiModel(ex);
+      return;
+    }
+
+    const next = await getNext(packId, selectedModality);
+    setUiModel(next);
+  }
+
+  const renderExerciseView = useMemo(() => {
+    if (!uiModel) return <Text style={{ color: theme.colors.textSecondary }}>Sem exercícios pendentes para este módulo.</Text>;
 
     switch (uiModel.view_type) {
       case "free_text":
@@ -91,42 +127,89 @@ export function SolveScreen({
     }
   }, [uiModel, darkMode]);
 
+  if (stage === "select_pack") {
+    return (
+      <ScreenContainer darkMode={darkMode}>
+        <View style={{ flex: 1, gap: theme.spacing.sm }}>
+          <Text style={{ color: textColor, fontSize: theme.typography.h2, fontWeight: "900" }}>Selecionar deck</Text>
+          {availablePackIds.length === 0 ? (
+            <Text style={{ color: theme.colors.error }}>Nenhum pack importado.</Text>
+          ) : (
+            availablePackIds.map((packId) => (
+              <Pressable
+                key={packId}
+                onPress={() => onSelectPack(packId)}
+                style={{ borderWidth: theme.border.normal, borderColor: theme.colors.neon, borderRadius: theme.radius.sm, padding: theme.spacing.sm }}
+              >
+                <Text style={{ color: theme.colors.neon, fontWeight: "800" }}>{packId}</Text>
+              </Pressable>
+            ))
+          )}
+          <MenuButton onPress={onBack} darkMode={darkMode} />
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  if (stage === "deck_overview") {
+    return (
+      <ScreenContainer darkMode={darkMode}>
+        <View style={{ flex: 1, gap: theme.spacing.sm }}>
+          <Text style={{ color: textColor, fontSize: theme.typography.h2, fontWeight: "900" }}>Deck: {selectedPackId ?? "-"}</Text>
+          <Text style={{ color: theme.colors.textSecondary }}>Feitos: {deckStats.done_total}</Text>
+          <Text style={{ color: theme.colors.success }}>Certos: {deckStats.correct_total}</Text>
+          <Text style={{ color: theme.colors.error }}>Errados: {deckStats.wrong_total}</Text>
+
+          <Text style={{ color: textColor, fontWeight: "800", marginTop: 8 }}>Escolha o tipo de estudo</Text>
+          <View style={{ gap: theme.spacing.xs }}>
+            {MODALITIES.map((m) => (
+              <Pressable
+                key={m.value}
+                onPress={async () => {
+                  if (!selectedPackId) return;
+                  setModality(m.value);
+                  setStage("exercise");
+                  setFeedback("");
+                  setAnswer("");
+                  await loadNextForModality(selectedPackId, m.value);
+                }}
+                style={{
+                  borderWidth: theme.border.normal,
+                  borderColor: theme.colors.neon,
+                  borderRadius: theme.radius.sm,
+                  padding: theme.spacing.sm,
+                  backgroundColor: theme.colors.neon,
+                }}
+              >
+                <Text style={{ color: theme.colors.black, fontWeight: "900", textTransform: "uppercase", letterSpacing: 1.5 }}>{m.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          <MenuButton onPress={() => setStage("select_pack")} darkMode={darkMode} />
+        </View>
+      </ScreenContainer>
+    );
+  }
+
   return (
     <ScreenContainer darkMode={darkMode}>
       <View style={{ flex: 1, gap: theme.spacing.sm }}>
-        <Text style={{ color: textColor, fontSize: theme.typography.h2, fontWeight: "900" }}>RESOLVER EXERCÍCIOS</Text>
+        <Text style={{ color: textColor, fontSize: theme.typography.h2, fontWeight: "900" }}>
+          {MODALITIES.find((m) => m.value === modality)?.label ?? "Exercícios"}
+        </Text>
 
-        <View style={{ gap: theme.spacing.xs }}>
-          <Text style={{ color: textColor, fontWeight: "700" }}>Selecionar pack</Text>
-          <View style={{ flexDirection: "row", gap: theme.spacing.xs, flexWrap: "wrap" }}>
-            {availablePackIds.length === 0 ? (
-              <Text style={{ color: theme.colors.error }}>Nenhum pack importado.</Text>
-            ) : (
-              availablePackIds.map((packId) => (
-                <Pressable
-                  key={packId}
-                  onPress={() => onSelectPack(packId)}
-                  style={{
-                    borderWidth: theme.border.normal,
-                    borderColor: theme.colors.neon,
-                    borderRadius: theme.radius.sm,
-                    padding: theme.spacing.xs,
-                    backgroundColor: selectedPackId === packId ? theme.colors.neon : "transparent",
-                  }}
-                >
-                  <Text style={{ color: selectedPackId === packId ? theme.colors.black : theme.colors.neon, fontWeight: "800" }}>{packId}</Text>
-                </Pressable>
-              ))
-            )}
-          </View>
-        </View>
+        <Text>
+          <Text style={{ color: theme.colors.success, fontWeight: "900" }}>{progress.done}</Text>
+          <Text style={{ color: theme.colors.neon, fontWeight: "900" }}>/{progress.total}</Text>
+        </Text>
 
-        <View style={{ flex: 1 }}>{renderView}</View>
+        <View style={{ flex: 1 }}>{renderExerciseView}</View>
 
         {uiModel && (
           <>
             <TextInput
-              placeholder="Digite sua resposta (texto / índice / verdadeiro|falso)"
+              placeholder="Digite sua resposta"
               placeholderTextColor={theme.colors.textSecondary}
               value={answer}
               onChangeText={setAnswer}
@@ -141,7 +224,8 @@ export function SolveScreen({
 
             <Pressable
               onPress={async () => {
-                if (!selectedPackId || !uiModel) return;
+                if (!selectedPackId || !uiModel || !modality) return;
+
                 const result = evaluate(uiModel, answer);
                 await submitAttempt({
                   packId: selectedPackId,
@@ -150,20 +234,20 @@ export function SolveScreen({
                   userAnswer: answer,
                 });
 
+                if (result === "wrong") {
+                  setRetryQueue((prev) => [...prev, uiModel]);
+                }
+
                 setFeedback(
                   result === "correct"
                     ? "✅ Resposta correta!"
                     : result === "wrong"
-                    ? "❌ Resposta incorreta."
+                    ? "❌ Resposta incorreta. Ela pode voltar mais adiante."
                     : "✅ Exercício marcado como concluído."
                 );
 
-                const next = await getNext(selectedPackId);
-                setUiModel(next);
                 setAnswer("");
-                if (!next) {
-                  setFeedback("✅ Pack concluído. Não há mais exercícios pendentes.");
-                }
+                await loadNextForModality(selectedPackId, modality);
               }}
               style={{
                 borderWidth: theme.border.normal,
@@ -180,7 +264,16 @@ export function SolveScreen({
 
         {feedback ? <Text style={{ color: textColor }}>{feedback}</Text> : null}
 
-        <MenuButton onPress={onBack} darkMode={darkMode} />
+        <MenuButton
+          onPress={() => {
+            setStage("deck_overview");
+            setModality(null);
+            setUiModel(null);
+            setAnswer("");
+            setFeedback("");
+          }}
+          darkMode={darkMode}
+        />
       </View>
     </ScreenContainer>
   );

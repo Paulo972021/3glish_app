@@ -62,7 +62,7 @@ export function AppNavigator() {
           onSelectPack={setSelectedPackId}
         />
       )}
-      {route === "stats" && <StatsScreen packId={selectedPackId ?? ""} onBack={backToMenu} darkMode={darkMode} />}
+      {route === "stats" && <StatsScreen onBack={backToMenu} darkMode={darkMode} />}
       {route === "settings" && <SettingsScreen darkMode={darkMode} onToggleDarkMode={setDarkMode} onBack={backToMenu} />}
     </View>
   );

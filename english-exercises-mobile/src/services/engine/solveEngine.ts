@@ -1,4 +1,4 @@
-import { Attempt, AttemptResult, UiModel } from "../../core/contracts/types";
+import { Attempt, AttemptResult, Modality, UiModel } from "../../core/contracts/types";
 import { insertAttempt } from "../db/attemptsRepo";
 import { getNextUiModel } from "../db/exercisesRepo";
 
@@ -27,6 +27,6 @@ export async function submitAttempt(params: {
   await insertAttempt(attempt);
 }
 
-export async function getNext(packId: string) {
-  return getNextUiModel(packId);
+export async function getNext(packId: string, modality?: Modality) {
+  return getNextUiModel(packId, modality);
 }
